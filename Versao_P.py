@@ -8,7 +8,6 @@ caminho_pasta = "C:\\Users\\caiob\\OneDrive\\Desktop\\UCB\\Concorrente e Paralel
 
 def ler_arquivos(caminho_arquivo):
     df = pd.read_csv(caminho_arquivo)
-    
     return df
       
 def gerar_consolidado_paralelizado():
@@ -26,7 +25,7 @@ def gerar_consolidado_paralelizado():
     tf = time.time()
     t1 = time.time()
     diretorio_script = os.path.dirname(os.path.abspath(__file__))
-    nome_arquivo_consolidado = os.path.join(diretorio_script, 'Consolidado_p.csv')
+    nome_arquivo_consolidado = os.path.join(diretorio_script, 'Consolidado_paralelizado.csv')
     df_concatenado.to_csv(nome_arquivo_consolidado, index=False)
     t2 = time.time()
 
