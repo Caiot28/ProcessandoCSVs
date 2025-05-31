@@ -2,32 +2,29 @@ import pandas as pd
 import os
 import time
 
-#Substitua pelo seu caminho da pasta Dados
-caminho_pasta = "C:\\Users\\caiob\\OneDrive\\Desktop\\UCB\\Concorrente e Paralela\\Projeto Final\\Dados"
+diretorio_script = os.path.dirname(os.path.abspath(__file__))
+diretorio_script += '\\Dados'
 
-# Geração dataframe concatenado
-def gerar_concatenado(caminho_pasta):
-    tl = time.time()
-    lista_dataframes = []
-    for nome_arquivo in os.listdir(caminho_pasta):
-        caminho_completo = os.path.join(caminho_pasta, nome_arquivo)
-        df = pd.read_csv(caminho_completo)
-        lista_dataframes.append(df)
-    tlf = time.time()
-    print(f"Tempo lendo arquivos: {tlf - tl}")
-    
-    tc = time.time()
-    df_resultado = pd.concat(lista_dataframes, ignore_index=True)
-    tcf = time.time()
-    print(f"Tempo concatenando: {tcf - tc}")
-    return df_resultado
-
-# Geração arquivo Consolidado.cvs
 def gerar_consolidado():
-  resultado = gerar_concatenado(caminho_pasta)
-  t0 = time.time()
-  diretorio_script = os.path.dirname(os.path.abspath(__file__))
-  nome_arquivo_consolidado = os.path.join(diretorio_script, 'Consolidado.csv')
-  resultado.to_csv(nome_arquivo_consolidado, index=False)
-  tf = time.time()
-  print(f"Tempo criando csv: {tf - t0}")
+
+    tl = time.time()
+    lista_csv = [f for f in os.listdir(diretorio_script) if f.endswith('.csv')]
+    tlf = time.time()
+    BaseDados = pd.DataFrame()
+
+    for arquivo in lista_csv:
+        tc = time.time()
+        df =  pd.read_csv(os.path.join(diretorio_script, arquivo))
+        BaseDados = pd.concat([BaseDados, df], ignore_index=True)
+        tcf = time.time()
+
+    t0 = time.time()
+    BaseDados.to_csv('Consolidado.csv', index=False, encoding='utf-8')
+    tf = time.time()
+
+    print(f"Tempo criar csv: {tf - t0}")
+    print(f"Tempo concatenando: {tcf - tc}")
+    print(f"Tempo lendo: {tlf - tl}")
+
+gerar_consolidado()
+
