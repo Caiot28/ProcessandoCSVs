@@ -3,8 +3,7 @@ import os
 import time
 import concurrent.futures
 
-diretorio_script = os.path.dirname(os.path.abspath(__file__))
-diretorio_script += '\\Dados'
+diretorio_script = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'Dados')
 
 def ler_arquivos(caminho_arquivo):
     df = pd.read_csv(caminho_arquivo)
@@ -27,7 +26,7 @@ def gerar_consolidado_paralelizado():
     tf = time.time()
     t1 = time.time()
     
-    df_concatenado.to_csv('Consolidado_paralelizado.csv', index=False)
+    #df_concatenado.to_csv('Consolidado_paralelizado.csv', index=False)
     t2 = time.time()
 
     print(f"Tempo concatenando: {tf - t0}")
