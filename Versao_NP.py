@@ -160,7 +160,7 @@ def gerar_dados(diretorio_script):
 
     # IDs de todas as metas para inicializar as colunas do dicionário de linha
     meta_ids = ['1', '2A', '2B', '2C', '2ANT', '4A', '4B', '6', '7A', '7B', '8A', '8B', '8', '10A', '10B', '10']
-
+    tc = time.time()
     #Percorre a pasta Dados
     for nome_arquivo in os.listdir(diretorio_script):
        
@@ -236,19 +236,22 @@ def gerar_dados(diretorio_script):
                     linhas_metas.append(linha_completa)
                 else:
                     print(f"Nenhum dado filtrado para o ramo '{ramo_justica_atual}' no arquivo '{nome_arquivo}'.")
-
+    tfc = time.time()
     #Cria o dataframe de ResumoMetas
+    tdf = time.time()
     resumo_metas = pd.DataFrame(linhas_metas)
     colunas = ['sigla_tribunal', 'ramo_justica']
     colunas_metas_ordenadas = [f'Meta {m}' for m in meta_ids]
     colunas += colunas_metas_ordenadas
-
+    
     # Reorganiza e preenche colunas ausentes no DataFrame final
     resumo_metas = resumo_metas.reindex(columns=colunas).fillna('NA')
     
     #Cria o dataframe de Consolidado.csv, concatenando toda a lista
     df_resultado = pd.concat(lista_dataframes, ignore_index=True)
-
+    tfdf = time.time()
+    print(f"Tempo criando dataframes e calculando metas de todos os arquivos: {tfc-tc:.5f}")
+    print(f"Tempo concatenando dataframe consolidado e criando df resumoMetas: {tfdf - tdf:.5f}")
     return df_resultado, resumo_metas
 
 # Geração arquivo Consolidado.cvs
@@ -256,17 +259,18 @@ def gerar_consolidado(df_consolidado):
     t0 = time.time()
     df_consolidado.to_csv('Consolidado.csv', index=False)
     tf = time.time()
-    print(f"Tempo criando Consolidado.csv: {tf - t0}")
+    print(f"Tempo criando Consolidado.csv: {tf - t0:.5f}")
 
 def gerar_resumo_metas(df_resumoM):
     t0 = time.time()
     df_resumoM.to_csv('ResumoMetas.csv', index=False)
     tf = time.time()
-    print(f"Tempo criando ResumoMetas.csv: {tf - t0}")
+    print(f"Tempo criando ResumoMetas.csv: {tf - t0:.5f}")
 
 if __name__ == "__main__":
-
+    t0 = time.time()
     consolidado, resumo_metas = gerar_dados(diretorio_script)
-    gerar_consolidado(consolidado)
+    #gerar_consolidado(consolidado)
     gerar_resumo_metas(resumo_metas)
-
+    t1 = time.time()
+    print(f"Tempo total: {t1-t0:.5f}")

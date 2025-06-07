@@ -3,6 +3,7 @@ import os
 import time
 import concurrent.futures
 import threading
+import multiprocessing
 
 # Função genérica para calcular as metas
 def calcular_metas(df, col_julgados, col_distm_casos_novos, col_dessobrestados, col_suspensos, multiplicador):
@@ -37,6 +38,7 @@ def calcular_metas(df, col_julgados, col_distm_casos_novos, col_dessobrestados, 
 def metas_justica_estadual(df_estadual):
     """Calcula todas as metas para a Justiça Estadual."""
     if df_estadual.empty: return {}
+
     return {
         'Meta 1': calcular_metas(df_estadual, 'julgados_2025', 'casos_novos_2025', 'dessobrestados_2025', 'suspensos_2025', 100.0),
         'Meta 2A': calcular_metas(df_estadual, 'julgm2_a', 'distm2_a', None, 'suspm2_a', (1000 / 8.0)),
@@ -158,7 +160,7 @@ meta_ids = ['1', '2A', '2B', '2C', '2ANT', '4A', '4B', '6', '7A', '7B', '8A', '8
 
 def ler_arquivos(caminho_arquivo):
     thread_atual = threading.current_thread()
-    print(f"Começou na thread '{thread_atual.name}' (ID: {thread_atual.ident})")
+    #print(f"Começou na thread '{thread_atual.name}' (ID: {thread_atual.ident})")
 
     df = pd.read_csv(caminho_arquivo)
     linhas = []
@@ -182,12 +184,12 @@ def ler_arquivos(caminho_arquivo):
                     ramo_para_registro = 'Tribunal Superior do Trabalho' 
                 else:
                     # Se for 'Tribunais Superiores' mas não é STJ nem TST, trata como desconhecido
-                    print(f"Metas inexistentes para {sigla_tribunal_atual} em {os.path.basename(caminho_arquivo)}")
+                    #print(f"Metas inexistentes para {sigla_tribunal_atual} em {os.path.basename(caminho_arquivo)}")
                     continue
     
                 #Se não estiver vazio
                 if not df_filtrado_tribunal.empty:
-                    print(f"\nCalculando metas para o arquivo: {os.path.basename(caminho_arquivo)}")
+                    #print(f"\nCalculando metas para o arquivo: {os.path.basename(caminho_arquivo)}")
                     resultados_calculados = funcao_a_chamar(df_filtrado_tribunal)
                         
                     info_tribunal = {
@@ -211,7 +213,7 @@ def ler_arquivos(caminho_arquivo):
             df_ramo_filtrado = df[df['ramo_justica'] == ramo_justica_atual].copy()
         
             if not df_ramo_filtrado.empty:
-                print(f"\nCalculando metas para o arquivo: {os.path.basename(caminho_arquivo)}")
+                #print(f"\nCalculando metas para o arquivo: {os.path.basename(caminho_arquivo)}")
                 resultados_calculados = funcoes_por_ramo[ramo_justica_atual](df_ramo_filtrado)
                     
                 info_tribunal = {
@@ -236,45 +238,56 @@ def gerar_consolidado(df_consolidado):
     t0 = time.time()
     df_consolidado.to_csv('ConsolidadoParalelizado.csv', index=False)
     tf = time.time()
-    print(f"Tempo criando Consolidado.csv: {tf - t0}")
+    print(f"Tempo criando ConsolidadoParalelizado.csv: {tf - t0:.5f}")
 
 def gerar_resumo_metas(df_resumoM):
     t0 = time.time()
     df_resumoM.to_csv('ResumoMetasParalelizado.csv', index=False)
     tf = time.time()
-    print(f"Tempo criando ResumoMetas.csv: {tf - t0}")
+    print(f"Tempo criando ResumoMetas.csv: {tf - t0:.5f}")
 
-def gerar_consolidado_paralelizado():
+def gerar_metas_paralelizado():
     lista_arquivos = []
     linhas_metas = []
     total_linhas = []
     lista_df = []
+
     for nome_arquivo in os.listdir(diretorio_script):
         if nome_arquivo.endswith('.csv'):
             caminho_completo = os.path.join(diretorio_script, nome_arquivo)
             lista_arquivos.append(caminho_completo)
 
+    tc = time.time()
     with concurrent.futures.ThreadPoolExecutor() as executor:
         linhas_metas = list(executor.map(ler_arquivos, lista_arquivos))
+
         for df_lido, linhas in linhas_metas:
             lista_df.append(df_lido)
             total_linhas.extend(linhas)
 
+    tfc = time.time()
+
     #Cria o dataframe de ResumoMetas
+    tdf = time.time()
     df_consolidado = pd.concat(lista_df, ignore_index=True)
     resumo_metas = pd.DataFrame(total_linhas)
+    tfdf = time.time()
+
+    #Ajeita as colunas de ResumoMetas
     colunas = ['sigla_tribunal', 'ramo_justica']
     colunas_metas_ordenadas = [f'Meta {m}' for m in meta_ids]
     colunas += colunas_metas_ordenadas
 
     # Reorganiza e preenche colunas ausentes no DataFrame final
     resumo_metas = resumo_metas.reindex(columns=colunas).fillna('NA')
+    print(f"Tempo criando dataframes e calculando metas de todos os arquivos: {tfc-tc:.5f}")
+    print(f"Tempo concatenando dataframe consolidado e criando df resumoMetas: {tfdf - tdf:.5f}")
     return resumo_metas, df_consolidado
 
 if __name__ == "__main__":
     t0 = time.time()
-    resumo_metas, consolidado = gerar_consolidado_paralelizado()
-    gerar_consolidado(consolidado)
+    resumo_metas, consolidado = gerar_metas_paralelizado()
+    #gerar_consolidado(consolidado)
     gerar_resumo_metas(resumo_metas)
     t1 = time.time()
-    print(f"Tempo total: {t1-t0}")
+    print(f"Tempo total: {t1-t0:.5f}")
