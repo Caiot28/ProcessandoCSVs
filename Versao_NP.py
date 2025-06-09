@@ -1,6 +1,9 @@
 import pandas as pd
 import os
 import time
+import matplotlib.pyplot as plt
+import seaborn as sns
+import numpy as np
 
 # Função genérica para calcular as metas
 def calcular_metas(df, col_julgados, col_distm_casos_novos, col_dessobrestados, col_suspensos, multiplicador):
@@ -250,7 +253,7 @@ def gerar_dados(diretorio_script):
     #Cria o dataframe de Consolidado.csv, concatenando toda a lista
     df_resultado = pd.concat(lista_dataframes, ignore_index=True)
     tfdf = time.time()
-    print(f"Tempo criando dataframes e calculando metas de todos os arquivos: {tfc-tc:.5f}")
+    print(f"\n\nTempo criando dataframes e calculando metas de todos os arquivos: {tfc-tc:.5f}")
     print(f"Tempo concatenando dataframe consolidado e criando df resumoMetas: {tfdf - tdf:.5f}")
     return df_resultado, resumo_metas
 
@@ -267,10 +270,68 @@ def gerar_resumo_metas(df_resumoM):
     tf = time.time()
     print(f"Tempo criando ResumoMetas.csv: {tf - t0:.5f}")
 
+def gerar_grafico(df_resumo_metas):
+    #Identificar as colunas das metas
+    colunas_metas = [col for col in df_resumo_metas.columns if col.startswith('Meta ')]
+
+    #Divide em 3 grupos
+    grupos_justica = {
+        'Justiça Estadual': ['Justiça Estadual'],
+        'Justiça Eleitoral': ['Justiça Eleitoral'],
+        'Demais Ramos': []
+    }
+
+    # Coleta todos os ramos de justiça únicos que existem no DataFrame
+    todos_ramos_no_df = df_resumo_metas['ramo_justica'].unique()
+
+    ramos_com_grafico_proprio = (
+        grupos_justica['Justiça Estadual'] + 
+        grupos_justica['Justiça Eleitoral']
+    )
+
+    # Adiciona ao grupo 'Demais Ramos' todos os ramos que não estão nos grupos específicos
+    for ramo in todos_ramos_no_df:
+        if ramo not in ramos_com_grafico_proprio:
+            grupos_justica['Demais Ramos'].append(ramo)
+
+    #Gera os heatmaps
+    for nome_grupo, ramos_a_filtrar in grupos_justica.items():
+        tg = time.time()
+        # Filtra o DataFrame para o grupo atual
+        df_grupo = df_resumo_metas[df_resumo_metas['ramo_justica'].isin(ramos_a_filtrar)].copy()
+        
+        titulo_grafico = f'Desempenho das Metas por Tribunal ({nome_grupo})'
+
+        df_para_heatmap_grupo = df_grupo.set_index('sigla_tribunal')[colunas_metas].copy()
+        pd.set_option('future.no_silent_downcasting', True)
+        df_para_heatmap_grupo = df_para_heatmap_grupo.replace('NA', np.nan)
+        df_para_heatmap_grupo = df_para_heatmap_grupo.astype(float)
+    
+        plt.figure(figsize=(15, 8))
+
+        sns.heatmap(df_para_heatmap_grupo,
+                    annot=True,
+                    fmt=".1f",
+                    cmap="viridis",
+                    linewidths=.5,
+                    cbar_kws={'label': 'Valor da Meta'}) 
+
+        plt.title(titulo_grafico, fontsize=16)
+        plt.ylabel('Sigla do Tribunal', fontsize=12)
+        plt.xlabel('Metas', fontsize=12)
+        plt.xticks(rotation=45, ha='right', fontsize=10)
+        plt.yticks(rotation=0, fontsize=10)
+        plt.tight_layout()
+        plt.show()
+        tfg = time.time()
+    return tfg - tg
+
 if __name__ == "__main__":
     t0 = time.time()
     consolidado, resumo_metas = gerar_dados(diretorio_script)
     #gerar_consolidado(consolidado)
     gerar_resumo_metas(resumo_metas)
     t1 = time.time()
-    print(f"Tempo total: {t1-t0:.5f}")
+    tempo_grafico = gerar_grafico(resumo_metas)
+    print(f"Tempo gerando graficos: {tempo_grafico:.5f}")
+    print(f"Tempo total: {(t1-t0) + tempo_grafico:.5f}")
