@@ -32,7 +32,7 @@ def calcular_metas(df, col_julgados, col_distm_casos_novos, col_dessobrestados, 
         #Calculo principal
         return (df[col_julgados].sum() * multiplicador) / denominador
     else:
-        print(f"Denominador = 0, divisão falhou")
+        print(f"Denominador = {denominador}, divisão falhou")
         return None
 
 def metas_justica_estadual(df_estadual):
@@ -156,7 +156,7 @@ funcoes_por_ramo = {
 }
 
 # Geração dataframe concatenado e calculo de dados e metas
-def gerar_dados(diretorio_script):
+def gerar_dados():
 
     lista_dataframes = []
     linhas_metas = []
@@ -216,7 +216,7 @@ def gerar_dados(diretorio_script):
                         print(f"Nenhum dado filtrado para {ramo_para_registro} ({sigla_tribunal_atual}) no arquivo '{nome_arquivo}'.")
 
             # Lógica para os demais tribunais
-            if ramo_justica_atual in funcoes_por_ramo:
+            elif ramo_justica_atual in funcoes_por_ramo:
                 # Filtra o DataFrame pelo ramo de justiça atual
                 df_ramo_filtrado = df[df['ramo_justica'] == ramo_justica_atual].copy()
         
@@ -294,6 +294,7 @@ def gerar_grafico(df_resumo_metas):
         if ramo not in ramos_com_grafico_proprio:
             grupos_justica['Demais Ramos'].append(ramo)
 
+    tempo = 0
     #Gera os heatmaps
     for nome_grupo, ramos_a_filtrar in grupos_justica.items():
         tg = time.time()
@@ -322,16 +323,18 @@ def gerar_grafico(df_resumo_metas):
         plt.xticks(rotation=45, ha='right', fontsize=10)
         plt.yticks(rotation=0, fontsize=10)
         plt.tight_layout()
-        plt.show()
         tfg = time.time()
-    return tfg - tg
+        tempo += (tfg - tg)
+        plt.show()
+
+    return tempo
 
 if __name__ == "__main__":
     t0 = time.time()
-    consolidado, resumo_metas = gerar_dados(diretorio_script)
-    #gerar_consolidado(consolidado)
+    consolidado, resumo_metas = gerar_dados()
+    gerar_consolidado(consolidado)
     gerar_resumo_metas(resumo_metas)
     t1 = time.time()
-    tempo_grafico = gerar_grafico(resumo_metas)
-    print(f"Tempo gerando graficos: {tempo_grafico:.5f}")
-    print(f"Tempo total: {(t1-t0) + tempo_grafico:.5f}")
+    tempo_graficos = gerar_grafico(resumo_metas)
+    print(f"Tempo gerando graficos: {tempo_graficos:.5f}")
+    print(f"Tempo total: {(t1-t0) + tempo_graficos:.5f}")

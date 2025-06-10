@@ -1,0 +1,12 @@
+para rodar o código, é necessário:
+
+Possuir a pasta 'Dados' com os arquivos csv's no mesmo diretório dos scripts
+
+Ter instalado as bibliotecas Python: 
+
+Pandas
+Numpy
+Matplotlib
+Seaborn
+
+Com a execução, serão gerados 3 gráficos + os arquivos Consolidado.csv e ResumoMetas.csv (ConsolidadoParalelizado.csv e ResumoMetasParalelizado.csv na versão_P para comparar os resultados)

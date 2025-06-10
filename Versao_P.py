@@ -34,7 +34,7 @@ def calcular_metas(df, col_julgados, col_distm_casos_novos, col_dessobrestados, 
         #Calculo principal
         return (df[col_julgados].sum() * multiplicador) / denominador
     else:
-        print(f"Denominador = 0, divisão falhou")
+        print(f"Denominador = {denominador}, divisão falhou")
         return None
 
 def metas_justica_estadual(df_estadual):
@@ -161,8 +161,6 @@ funcoes_por_ramo = {
 meta_ids = ['1', '2A', '2B', '2C', '2ANT', '4A', '4B', '6', '7A', '7B', '8A', '8B', '8', '10A', '10B', '10']
 
 def ler_arquivos(caminho_arquivo):
-    thread_atual = threading.current_thread()
-    #print(f"Começou na thread '{thread_atual.name}' (ID: {thread_atual.ident})")
 
     df = pd.read_csv(caminho_arquivo)
     linhas = []
@@ -186,12 +184,12 @@ def ler_arquivos(caminho_arquivo):
                     ramo_para_registro = 'Tribunal Superior do Trabalho' 
                 else:
                     # Se for 'Tribunais Superiores' mas não é STJ nem TST, trata como desconhecido
-                    #print(f"Metas inexistentes para {sigla_tribunal_atual} em {os.path.basename(caminho_arquivo)}")
+                    print(f"Metas inexistentes para {sigla_tribunal_atual} em {os.path.basename(caminho_arquivo)}")
                     continue
     
                 #Se não estiver vazio
                 if not df_filtrado_tribunal.empty:
-                    #print(f"\nCalculando metas para o arquivo: {os.path.basename(caminho_arquivo)}")
+                    #Calcula as metas
                     resultados_calculados = funcao_a_chamar(df_filtrado_tribunal)
                         
                     info_tribunal = {
@@ -201,7 +199,7 @@ def ler_arquivos(caminho_arquivo):
                     #Linha que vai para ResumoMetas.csv
                     linha_completa = {**info_tribunal, **resultados_calculados}
 
-                        # Preenche com 'NA' as metas não calculadas/aplicáveis
+                    # Preenche com 'NA' as metas não calculadas/aplicáveis
                     for meta_id in meta_ids:
                         if f'Meta {meta_id}' not in linha_completa:
                             linha_completa[f'Meta {meta_id}'] = 'NA'
@@ -310,6 +308,7 @@ def gerar_grafico(df_resumo_metas):
         if ramo not in ramos_com_grafico_proprio:
             grupos_justica['Demais Ramos'].append(ramo)
 
+    tempo = 0
     #Gera os heatmaps
     for nome_grupo, ramos_a_filtrar in grupos_justica.items():
         tg = time.time()
@@ -338,16 +337,18 @@ def gerar_grafico(df_resumo_metas):
         plt.xticks(rotation=45, ha='right', fontsize=10)
         plt.yticks(rotation=0, fontsize=10)
         plt.tight_layout()
-        plt.show()
         tfg = time.time()
-    return tfg - tg
+        tempo += (tfg - tg)
+        plt.show()
+        
+    return tempo
 
 if __name__ == "__main__":
     t0 = time.time()
     resumo_metas, consolidado = gerar_metas_paralelizado()
-    #gerar_consolidado(consolidado)
+    gerar_consolidado(consolidado)
     gerar_resumo_metas(resumo_metas)
     t1 = time.time()
-    tempo_grafico = gerar_grafico(resumo_metas)
-    print(f"Tempo gerando graficos: {tempo_grafico:.5f}")
-    print(f"Tempo total: {(t1-t0) + tempo_grafico:.5f}")
+    tempo_graficos = gerar_grafico(resumo_metas)
+    print(f"Tempo gerando graficos: {tempo_graficos:.5f}")
+    print(f"Tempo total: {(t1-t0) + tempo_graficos:.5f}")
